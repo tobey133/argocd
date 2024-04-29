@@ -12,26 +12,34 @@
 - [Cleanup](#cleanup)
 
 # Introduction
+
 This project aims to install a self-managed Argo CD using the App of App pattern. Full instructions and explanation can be found in the Medium article [Self Managed Argo CD — App Of Everything](https://medium.com/devopsturkiye/self-managed-argo-cd-app-of-everything-a226eb100cf0).
 
 # Clone Repository
+
 Clone kurtburak/argocd repository to your local device.
-```
+
+```sh
 git clone https://github.com/kurtburak/argocd.git
 ```
+
 # Create Local Kubernetes Cluster
+
 Intall kind.
-```
+
+```sh
 brew install kind
 ```
 
 Create local Kubernetes Cluster using kind
-```
+
+```sh
 kind create cluster — name my-cluster
 ```
 
 Check cluster is running and healthy
-```
+
+```sh
 kubectl cluster-info — context kind-my-cluster
 
 Kubernetes control plane is running at https://127.0.0.1:50589
@@ -40,8 +48,10 @@ To further debug and diagnose cluster problems, use ‘kubectl cluster-info dump
 ```
 
 # Git Repository Hierarchy
+
 Folder structure below is used in this project. You are free to change it.
-```
+
+```ini
 argocd/
 ├── argocd-appprojects      # stores ArgoCD App Project's yaml files
 ├── argocd-apps             # stores ArgoCD Application's yaml files
@@ -53,11 +63,14 @@ argocd/
 # Create App Of Everything Pattern
 
 Open *argocd-install/values-override.yaml* with your favorite editor and modify related values.
-```
+
+```sh
 vi argocd-install/values-override.yaml
 ```
+
 Or update it with your values.
-```
+
+```yaml
 cat << EOF > argocd-install/values-override.yaml
 server:
   configEnabled: true
@@ -141,13 +154,16 @@ EOF
 ```
 
 # Intall Argo CD Using Helm
+
 Go to argocd directory.
-```
+
+```sh
 cd argocd/argocd-install/
 ```
 
 Intall Argo CD to *argocd* namespace using argo-cd helm chart overriding default values with *values-override.yaml* file. If argocd namespace does not exist, use *--create-namespace* parameter to create it.
-```
+
+```sh
 helm install argocd ./argo-cd \
     --namespace=argocd \
     --create-namespace \
@@ -155,7 +171,8 @@ helm install argocd ./argo-cd \
 ```
 
 Wait until all pods are running.
-```
+
+```sh
 kubectl -n argocd get pods
 
 NAME                                            READY   STATUS    RESTARTS
@@ -167,21 +184,25 @@ argocd-server-848dbc6cb4-r48qp                  1/1     Running   0
 ```
 
 Get initial admin password.
-```
+
+```sh
 kubectl -n argocd get secrets argocd-initial-admin-secret \
     -o jsonpath='{.data.password}' | base64 -d
 ```
 
 Forward argocd-server service port 80 to localhost:8080 using kubectl.
-```
+
+```sh
 kubectl -n argocd port-forward service/argocd-server 8080:80
 ```
 
 Browse http://localhost:8080 and login with initial admin password.
 
 # Demo With Sample Application
+
 Create an application project definition file called *sample-project*.
-```
+
+```yaml
 cat << EOF > argocd-appprojects/sample-project.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -203,14 +224,16 @@ EOF
 ```
 
 Push changes to your repository.
-```
+
+```sh
 git add argocd-appprojects/sample-project.yaml
 git commit -m "Create sample-project"
 git push
 ```
 
 Create a saple applicaiton definition yaml file called *sample-app* under argocd-apps.
-```
+
+```yaml
 cat << EOF >> argocd-apps/sample-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -224,7 +247,7 @@ spec:
   project: sample-project
   source:
     path: sample-app/
-    repoURL: https://github.com/kurtburak/argocd.git
+    repoURL: https://github.com/tobey133/argocd.git
     targetRevision: HEAD
   syncPolicy:
     syncOptions:
@@ -236,15 +259,18 @@ EOF
 ```
 
 Push changes to your repository.
-```
+
+```sh
 git add argocd-apps/sample-app.yaml
 git commit -m "Create application"
 git push
 ```
 
 # Cleanup
+
 Remove application and applicaiton project.
-```
+
+```sh
 rm -f argocd-apps/sample-app.yaml
 rm -f argocd-appprojects/sample-project.yaml
 git rm argocd-apps/sample-app.yaml
